@@ -1,8 +1,8 @@
 const Redux = require('redux');
+const prompts = require('prompts');
+
 const { createStore, combineReducers } = Redux;
 
-
-// FUNÇÕES CRIADORAS
 const realizarVestibular = (nome, cpf) => {
     const entre6e10 = Math.random() <= 0.7;
     const nota = entre6e10 ? 6 + Math.random() * 4 : 0 + Math.random() * 6;
@@ -27,23 +27,84 @@ const realizarMatricula = (cpf, status) => {
     }
 }
 
-
-// FUNÇÕES REDUCERS
-const vestibularReducer = (listaCandidatos = [], acao) => {
+const historicoVestibularReducer = (historicoVestibular = [], acao) => {
     if(acao.type === 'REALIZAR_VESTIBULAR') {
-        listaCandidatos = [...listaCandidatos, acao.payload]
+        historicoVestibular = [...historicoVestibular, acao.payload]
     }
 
-    return listaCandidatos;
+    return historicoVestibular;
 }
 
 
-const matriculaReducer = (listaMatriculados = [], acao) => {
+const historicoMatriculaReducer = (historicoListaMatriculados = [], acao) => {
     if(acao.type === 'REALIZAR_MATRICULA') {
-        listaMatriculados = [...listaMatriculados, acao.payload];
+        historicoListaMatriculados = [...historicoListaMatriculados, acao.payload];
     }
 
-    return listaMatriculados;
+    return historicoListaMatriculados;
+}
+
+const todosOsReducers = combineReducers({
+    historicoVestibularReducer,
+    historicoMatriculaReducer
+});
+
+const store = createStore(todosOsReducers);
+
+const main = async () => {
+    const menu = "1 - Realizar Vestibular\n2 - Realizar Matrícula\n3 - Visualizar Meu Status\n4 - Visualizar a Lista de Aprovados\n0 - Sair";
+
+    let response;
+    
+    do {
+        response = await prompts({
+            type: 'number',
+            name: 'op',
+            message: menu
+        });
+
+        switch(response.op) {
+            case 1: {
+                const { nome } = await prompts({
+                    type: 'text',
+                    name: 'nome',
+                    message: 'Digite o seu nome: '
+                });
+
+                const { cpf } = await prompts({
+                    type: 'text',
+                    name: 'cpf',
+                    message: 'Digite o seu CPF: '
+                });
+
+                const acao = realizarVestibular(nome, cpf);
+                store.dispatch(acao);               
+                break;
+            }
+            case 2: {
+                const { cpf } = await prompts({
+                    type: 'text',
+                    name: 'cpf',
+                    message: 'Digite o seu CPF: '
+                });
+
+                const aprovado = store.getState().historicoVestibular().find(aluno => aluno.cpf === cpf && aluno.aluno >= 6);
+
+                store.dispatch(realizarMatricula(cpf, aprovado ? 'M' : 'NM'));
+                break;
+            }
+            case 3: {
+
+            }
+                break;
+            case 4: {
+
+            }
+                break;
+            default:
+
+        }
+    } while (response.op !== 0);
 }
 
 const listaAprovados = (store) => {
@@ -53,48 +114,5 @@ const listaAprovados = (store) => {
 const visualizarStatus = (store, cpf) => {
     console.log(store.getState().matriculaReducer.filter(candidato => candidato.cpf === cpf));
 }
-
-
-const reducers = combineReducers({
-    vestibularReducer,
-    matriculaReducer
-});
-
-const store = createStore(reducers);
-
-console.log(store.getState());
-
-const acaoVestibularJose = realizarVestibular('José', '123');
-store.dispatch(acaoVestibularJose);
-console.log(store.getState());
-
-const acaoVestibularMaria = realizarVestibular('Maria', '124');
-store.dispatch(acaoVestibularMaria);
-console.log(store.getState());
-
-const acaoVestibularJoao = realizarVestibular('João', '125');
-store.dispatch(acaoVestibularJoao);
-console.log(store.getState());
-
-
-//
-const acaoRealizarMatriculaJose = realizarMatricula('123', 'M');
-store.dispatch(acaoRealizarMatriculaJose);
-console.log(store.getState());
-
-const acaoRealizarMatriculaMaria = realizarMatricula('124', 'NM');
-store.dispatch(acaoRealizarMatriculaMaria);
-console.log(store.getState());
-
-const acaoRealizarMatriculaJoao = realizarMatricula('125', 'M');
-store.dispatch(acaoRealizarMatriculaJoao);
-console.log(store.getState());
-
-listaAprovados(store);
-visualizarStatus(store, '123');
-visualizarStatus(store, '124');
-visualizarStatus(store, '125');
-
-
 
 
